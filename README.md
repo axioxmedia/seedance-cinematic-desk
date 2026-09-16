@@ -91,4 +91,3 @@ Modules wired: `webview-app-shell`, `ai-provider-gateway`, `ai-writing-assist`.
 - Logs next to the EXE: `seedance_desk.log`
 - Models next to the EXE: `models/`
 - Generated parts: `output/`
-- Drop the preview screenshot at `docs/APPCap.png` before publishing the GitHub page
