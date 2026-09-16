@@ -46,7 +46,3 @@ python -m venv .venv
 - 风格卡片 → Part 规划 → 单 Part 生成 → `output/` 存档
 - 显存检测与 7B / 14B / 32B 目录
 - 右下角 Runtime Log，中英界面记忆 `aio.uiLang`
-
-## 预览图
-
-把程序截图放到本目录，文件名必须是 `APPCap.png`。
