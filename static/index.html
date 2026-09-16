@@ -1,0 +1,200 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <link rel="icon" href="/brand/logo.png" type="image/png" />
+  <title>Seedance Cinematic Desk</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=Noto+Sans+SC:wght@400;500;600&family=Sora:wght@500;600;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="/assets/styles.css" />
+</head>
+<body class="aio-app axiox-shell">
+  <div class="bg-grid"></div>
+  <main class="app">
+    <header class="topbar">
+      <div class="brand">
+        <div class="mark"><img src="/brand/logo.png" alt="A|O" /></div>
+        <div>
+          <h1 data-i18n="appTitle">Seedance 电影提示词工作台</h1>
+          <p data-i18n="appSubtitle">步骤式向导 · Grok / DeepSeek / 本地模型</p>
+        </div>
+      </div>
+      <div class="top-actions">
+        <div class="lang-switch" id="uiLangSwitch">
+          <button type="button" data-ui-lang="zh">中文</button>
+          <button type="button" data-ui-lang="en">EN</button>
+        </div>
+        <div class="chip" id="providerChip">Grok</div>
+      </div>
+    </header>
+
+    <nav class="steps" id="stepNav"></nav>
+
+    <section class="workspace">
+      <article class="wizard-card on" id="stage0">
+        <div class="kicker">Step 01</div>
+        <h2 data-i18n="cfgTitle">模型与 API</h2>
+        <p class="lead" data-i18n="cfgLead">先选定通道并验证。验证通过后进入下一步，本框会隐藏。</p>
+
+        <div class="toggle-row">
+          <div class="toggle on" id="useGrokToggle" onclick="toggleProvider()">
+            <span class="switch"><i></i></span>
+            <span data-i18n="useGrok">使用 Grok</span>
+          </div>
+          <div class="toggle" id="debugToggle" onclick="toggleDebugMode()">
+            <span class="switch"><i></i></span>
+            <span data-i18n="debugMode">UI 调试模式</span>
+          </div>
+        </div>
+
+        <div id="grokKeyArea">
+          <label data-i18n="xaiKey">xAI API Key</label>
+          <input id="apiKey" type="password" placeholder="xai-..." />
+        </div>
+
+        <div id="deepseekArea" hidden>
+          <div id="cloudKeyRow">
+            <label data-i18n="dsKey">DeepSeek Key</label>
+            <input id="deepseekKey" type="password" placeholder="sk-..." />
+          </div>
+          <div class="toggle" id="useLocalToggle" onclick="toggleLocalModel()" style="margin-top:14px">
+            <span class="switch"><i></i></span>
+            <span data-i18n="useLocal">使用本地模型（离线）</span>
+          </div>
+          <div id="localModelPanel" hidden>
+            <p class="hint" id="vramInfo" data-i18n="vramWait">正在检测显存…</p>
+            <label data-i18n="engine">推理引擎</label>
+            <select id="localEngine" onchange="updateEngineInfo()">
+              <option value="llama_cpp">llama-cpp-python (GGUF)</option>
+              <option value="transformers">transformers + bitsandbytes</option>
+            </select>
+            <p class="hint" id="engineProsCons"></p>
+            <div id="modelCards"></div>
+            <p class="hint" id="localStatus" data-i18n="localIdle">本地模型：未加载</p>
+          </div>
+        </div>
+
+        <p class="hint" data-i18n="keyHint">Key 只保存在本机 localStorage。模型文件保存在 models/。</p>
+        <div class="actions">
+          <button class="primary" type="button" id="btnVerify" onclick="verifyAndUnlock()" data-i18n="verifyBtn">验证并进入下一步</button>
+          <span class="hint" id="verifyHint"></span>
+        </div>
+      </article>
+
+      <article class="wizard-card" id="stage1">
+        <div class="kicker">Step 02</div>
+        <h2 data-i18n="skillTitle">加载 Skill</h2>
+        <p class="lead" data-i18n="skillLead">上传含 SKILL.md 的 ZIP。Grok / 本地 / 调试模式可不传，直接继续。</p>
+        <label data-i18n="skillZip">上传 Skill ZIP</label>
+        <div class="file-row">
+          <input type="file" id="skillZip" accept=".zip" onchange="handleSkillZip(event)" />
+          <span class="hint" id="skillStatus" data-i18n="skillNone">未加载</span>
+        </div>
+        <p class="hint" id="skillMeta"></p>
+        <div class="actions">
+          <button class="ghost" type="button" onclick="goStep(0)" data-i18n="back">返回上一步</button>
+          <button class="soft" type="button" onclick="clearStoredSkill()" data-i18n="clearSkill">清除已保存 Skill</button>
+          <button class="primary" type="button" id="btnSkillContinue" onclick="continueAfterSkill()" data-i18n="nextPlot">进入输入剧情</button>
+        </div>
+      </article>
+
+      <article class="wizard-card" id="stage2">
+        <div class="kicker">Step 03</div>
+        <h2 data-i18n="plotTitle">输入剧情</h2>
+        <p class="lead" data-i18n="plotLead">写完整场景、人物关系、情绪与动作节奏。越具体越好。</p>
+        <div class="scroll">
+          <label data-i18n="plotLabel">剧情 / 场景描述 *</label>
+          <textarea id="plotInput" data-i18n-placeholder="plotPh" placeholder="在这里输入完整剧情…"></textarea>
+          <div class="row cols-3">
+            <div>
+              <label data-i18n="langPref">目标语言</label>
+              <select id="langPref">
+                <option value="auto" data-i18n="langAuto">自动</option>
+                <option value="zh">中文</option>
+                <option value="en">English</option>
+              </select>
+            </div>
+            <div>
+              <label data-i18n="durPref">时长偏好</label>
+              <select id="durationPref">
+                <option value="auto" data-i18n="durAuto">自动判断</option>
+                <option value="15-20">15–20s</option>
+                <option value="20-30">20–30s</option>
+                <option value="multi" data-i18n="durMulti">允许多 Part</option>
+              </select>
+            </div>
+            <div>
+              <label data-i18n="charNote">角色外貌补充</label>
+              <input id="charNote" type="text" data-i18n-placeholder="charPh" placeholder="女主黑长直、白衬衫…" />
+            </div>
+          </div>
+        </div>
+        <div class="actions">
+          <button class="ghost" type="button" onclick="goStep(1)" data-i18n="back">返回上一步</button>
+          <button class="primary" type="button" id="btnAnalyze" onclick="runAnalyze()" data-i18n="analyzeBtn">分析并生成风格选项</button>
+          <button class="soft" type="button" id="btnLoadLast" onclick="loadLastProject()" data-i18n="loadLast">加载上一次项目</button>
+          <button class="danger" type="button" onclick="clearAllHistory()" data-i18n="clearHist">清除历史</button>
+          <span class="hint" id="historyStatus" data-i18n="noHist">暂无项目记录</span>
+        </div>
+      </article>
+
+      <article class="wizard-card" id="stage3">
+        <div class="kicker">Step 04</div>
+        <h2 data-i18n="styleTitle">选择风格</h2>
+        <p class="lead" data-i18n="styleLead">四个选项均来自 Skill 允许的参考风格库。选一张卡片再继续。</p>
+        <div class="scroll">
+          <div class="style-grid" id="styleOptions"></div>
+          <label data-i18n="extraNote">额外调参 / 补充要求</label>
+          <textarea id="extraNote" rows="4" data-i18n-placeholder="extraPh" placeholder="更强调微表情、禁止某类元素…"></textarea>
+        </div>
+        <div class="actions">
+          <button class="ghost" type="button" onclick="backToPlot()" data-i18n="backPlot">返回修改剧情</button>
+          <button class="primary" type="button" id="btnGenerate" onclick="runGenerate()" data-i18n="planBtn">规划 Part 结构</button>
+        </div>
+      </article>
+
+      <article class="wizard-card" id="stage4">
+        <div class="kicker">Step 05</div>
+        <h2 data-i18n="planTitle">Part 规划</h2>
+        <p class="lead"><span data-i18n="planCountA">共</span> <span id="planCount">0</span> <span data-i18n="planCountB">个 Part。逐个生成完整提示词。</span></p>
+        <div class="scroll" id="planParts"></div>
+        <div class="actions">
+          <button class="ghost" type="button" onclick="backToStyle()" data-i18n="backStyle">返回调整风格</button>
+          <button class="primary" type="button" id="btnGoResults" onclick="goToResultsIfReady()" disabled data-i18n="seeResults">查看已生成结果</button>
+        </div>
+      </article>
+
+      <article class="wizard-card" id="stage5">
+        <div class="kicker">Step 06</div>
+        <h2 data-i18n="resultTitle">生成结果</h2>
+        <div class="scroll" id="resultParts"></div>
+        <div class="actions">
+          <button class="ghost" type="button" onclick="backToPlan()" data-i18n="backPlan">返回 Part 规划</button>
+          <button class="primary" type="button" onclick="downloadAllParts()" data-i18n="dlAll">下载全部 Part</button>
+        </div>
+      </article>
+    </section>
+  </main>
+
+  <aside class="log-dock" id="runtimeLogPanel">
+    <div class="bar" onclick="toggleLogCollapse()">
+      <span>Runtime Log</span>
+      <span id="logCollapseIcon" data-i18n="collapse">收起</span>
+    </div>
+    <div class="body" id="runtimeLog"><div data-i18n="logWait">等待后端连接…</div></div>
+  </aside>
+
+  <div class="overlay" id="loading">
+    <div class="overlay-box">
+      <div class="dots"><span></span><span></span><span></span></div>
+      <p id="loadingText" data-i18n="working">处理中…</p>
+      <div id="loadingLog"></div>
+    </div>
+  </div>
+
+  <footer class="app-version" id="appVersion">v1.0.0</footer>
+  <script src="/assets/app.js"></script>
+</body>
+</html>
